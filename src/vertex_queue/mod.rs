@@ -41,9 +41,8 @@ pub(crate) struct Node {
     pub(crate) done: bool,
 }
 
-#[allow(dead_code)]
 impl Node {
-    fn new(index: usize, left: usize, right: usize) -> Self {
+    const fn new(index: usize, left: usize, right: usize) -> Self {
         Self {
             index: IndexType::RealIndex(index),
             left: IndexType::PointerIndex(left),
@@ -52,11 +51,13 @@ impl Node {
         }
     }
 
-    pub(crate) fn lv(&self) -> IndexType {
+    #[allow(dead_code)]
+    pub(crate) const fn lv(&self) -> IndexType {
         self.left
     }
 
-    pub(crate) fn rv(&self) -> IndexType {
+    #[allow(dead_code)]
+    pub(crate) const fn rv(&self) -> IndexType {
         self.right
     }
 }
@@ -67,9 +68,8 @@ pub(crate) struct VertexQueue {
     pub(crate) start_vertex: Vec<usize>,
 }
 
-#[allow(dead_code)]
 impl VertexQueue {
-    pub(crate) fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self {
             content: Vec::new(),
             start_vertex: Vec::new(),
@@ -77,7 +77,31 @@ impl VertexQueue {
     }
 
     pub(crate) fn initialize_from_polygon(&mut self, p: &Polygon) {
-        self.initialize_from_polygon_vector(&vec![p.clone()])
+        let offset = self.content.len();
+        let len = p.exterior().0.len() - 1;
+
+        self.start_vertex.push(offset);
+        for i in 0..len {
+            let new_node = Node::new(
+                i + offset,
+                (i + len - 1) % len + offset,
+                (i + 1) % len + offset,
+            );
+            self.content.push(new_node);
+        }
+        for i in 0..p.interiors().len() {
+            let offset = self.content.len();
+            let len = p.interiors()[i].0.len() - 1;
+            self.start_vertex.push(offset);
+            for j in 0..len {
+                let new_node = Node::new(
+                    j + offset,
+                    (j + len - 1) % len + offset,
+                    (j + 1) % len + offset,
+                );
+                self.content.push(new_node);
+            }
+        }
     }
 
     pub(crate) fn initialize_from_polygon_vector(&mut self, pv: &Vec<Polygon>) {
@@ -116,6 +140,7 @@ impl VertexQueue {
         panic!("Expected parameter \"cv\" as IndexType::RealIndex")
     }
 
+    /// Get the left value of a `Node` at current value(cv)'s index
     pub(crate) fn lv(&self, cv: IndexType) -> IndexType {
         if let IndexType::PointerIndex(cv) = cv {
             return self.content[cv].left;
@@ -123,6 +148,7 @@ impl VertexQueue {
         panic!("Expected parameter \"cv\" as IndexType::PointerIndex");
     }
 
+    /// Get the right value of a `Node` at current value(cv)'s index
     pub(crate) fn rv(&self, cv: IndexType) -> IndexType {
         if let IndexType::PointerIndex(cv) = cv {
             return self.content[cv].right;
@@ -130,11 +156,13 @@ impl VertexQueue {
         panic!("Expected parameter \"cv\" as IndexType::PointerIndex");
     }
 
+    #[allow(dead_code)]
     pub(crate) fn llv(&self, cv: IndexType) -> IndexType {
         let cv = self.lv(cv);
         self.lv(cv)
     }
 
+    #[allow(dead_code)]
     pub(crate) fn rrv(&self, cv: IndexType) -> IndexType {
         let cv = self.rv(cv);
         self.rv(cv)
@@ -211,7 +239,7 @@ impl VertexQueue {
             while cur != self.start_vertex[sv_idx] {
                 if visit[cur] {
                     panic!(
-                        "Something Worng in cleanup phase: cur {} from {}, sv {:?}",
+                        "Something Wrong in cleanup phase: cur {} from {}, sv {:?}",
                         cur, sv_idx, self.start_vertex
                     );
                 }
